@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sending & Reply System with Warnings</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            font-family: system-ui, Arial;
+            background: #0f172a;
+            color: #e5e7eb;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px
+        }
+
+        .top {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        input,
+        button,
+        select {
+            padding: 10px;
+            font-size: 16px;
+            background: #1e293b;
+            color: white;
+            border: 1px solid #334155;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            margin: 2px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            table-layout: fixed;
+            /* Enforces fixed column widths */
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #334155;
+            word-wrap: break-word;
+            /* Prevent content overflow */
+        }
+
+        /* Column specific widths */
+        .col-profile {
+            width: 18%;
+            /* Increased from 14% */
+        }
+
+        /* .col-assigned removed */
+
+        /* Admin Only */
+        .col-last-send {
+            width: 12%;
+        }
+
+        .col-next-send {
+            width: 12%;
+        }
+
+        .col-reply-cnt {
+            width: 10%;
+        }
+
+        .col-last-reply {
+            width: 12%;
+        }
+
+        .col-send-cnt {
+            width: 10%;
+        }
+
+        /* Action columns split ~30% total */
+        .col-action-send {
+            width: 10%;
+        }
+
+        .col-action-reply {
+            width: 10%;
+        }
+
+        .col-action-rest {
+            width: 10%;
+        }
+
+        th {
+            background: #020617;
+            color: #38bdf8;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #020617;
+            color: #38bdf8;
+        }
+
+        /* Row Colors + Text */
+        .row-default {
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+
+        .row-green {
+            background: #064e3b;
+            color: #fff;
+        }
+
+        .row-yellow {
+            background: #eab308;
+            color: #000;
+            font-weight: 700;
+        }
+
+        .row-orange {
+            background: #f97316;
+            color: #000;
+            font-weight: 700;
+        }
+
+        .row-red {
+            background: #7f1d1d;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        /* Rest Mode Style */
+        .row-rest {
+            background: #334155;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .row-rest button {
+            opacity: 0.5;
+            pointer-events: none;
+            /* Disable other buttons in rest mode */
+        }
+
+        .row-rest .rest-btn {
+            opacity: 1;
+            pointer-events: auto;
+            /* Enable rest button to toggle back */
+        }
+
+        .send-btn {
+            background: #22c55e;
+            color: #000;
+            font-weight: 700;
+            padding: 8px 12px;
+        }
+
+        .send-btn:hover {
+            opacity: .9
+        }
+
+        .reply-btn {
+            background: #facc15;
+            color: #000;
+            font-weight: 700;
+            padding: 6px 10px;
+        }
+
+        .reply-btn:hover {
+            opacity: .9
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            color: #fff;
+            font-weight: 700;
+            padding: 6px 10px;
+        }
+
+        .delete-btn:hover {
+            opacity: .9
+        }
+
+        .rest-btn {
+            background: #64748b;
+            color: #fff;
+            font-weight: 700;
+            padding: 6px 10px;
+        }
+
+        .rest-btn:hover {
+            opacity: .9
+        }
+
+        .badge {
+            padding: 2px 6px;
+            background: #f43f5e;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* Login & Admin Styles */
+        #login-section,
+        #admin-panel,
+        #dashboard-section {
+            display: none;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background: #1e293b;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .login-container input {
+            width: 90%;
+            margin: 10px 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .admin-only {
+            display: none;
+        }
+
+        /* Visible when admin mode is active */
+        body.is-admin .admin-only {
+            display: table-cell;
+        }
+
+        .admin-only-btn {
+            display: none;
+        }
+
+        /* Enhanced Admin Dashboard Styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid #475569;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .stat-card .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #38bdf8;
+            margin: 10px 0;
+        }
+
+        .stat-card .stat-label {
+            font-size: 14px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .stat-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .search-filter-bar {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-filter-bar input,
+        .search-filter-bar select {
+            flex: 1;
+            min-width: 150px;
+            border-radius: 6px;
+        }
+
+        .admin-section {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .admin-section h3 {
+            margin-top: 0;
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .user-badge.admin {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .user-badge.employee {
+            background: #64748b;
+            color: white;
+        }
+
+        .bulk-actions-bar {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 15px 0;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bulk-actions-bar.active {
+            display: flex;
+        }
+
+        .checkbox-cell {
+            width: 40px;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        body.is-admin .admin-only-btn {
+            display: inline-block;
+        }
+
+        /* Responsive Design */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .top {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .search-filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            /* Table to Card Transformation */
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            tr {
+                margin-bottom: 15px;
+                border: 1px solid #334155;
+                border-radius: 12px;
+                padding: 15px;
+                background: #1e293b;
+                position: relative;
+            }
+
+            td {
+                border: none;
+                position: relative;
+                padding-left: 50% !important;
+                text-align: left !important;
+                min-height: 30px;
+                display: flex;
+                align-items: center;
+            }
+
+            td:before {
+                position: absolute;
+                left: 10px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                font-weight: bold;
+                color: #38bdf8;
+            }
+
+            /* Labeling the cards */
+            td:nth-of-type(1):before {
+                content: "Select:";
+            }
+
+            td:nth-of-type(2):before {
+                content: "Profile:";
+            }
+
+            td:nth-of-type(3):before {
+                content: "Last Send:";
+            }
+
+            td:nth-of-type(4):before {
+                content: "Next Send:";
+            }
+
+            td:nth-of-type(5):before {
+                content: "Reply CD:";
+            }
+
+            td:nth-of-type(6):before {
+                content: "Last Reply:";
+            }
+
+            td:nth-of-type(7):before {
+                content: "Send CD:";
+            }
+
+            /* Actions styling on mobile */
+            .col-action-send,
+            .col-action-reply,
+            .col-action-rest {
+                padding-left: 10px !important;
+                display: block !important;
+                width: 100% !important;
+                margin-top: 10px;
+                border: none !important;
+            }
+
+            .col-action-send:before,
+            .col-action-reply:before,
+            .col-action-rest:before {
+                display: none;
+            }
+
+            .send-btn,
+            .reply-btn,
+            .rest-btn {
+                width: 100%;
+                padding: 12px;
+                margin: 5px 0;
+            }
+
+            .checkbox-cell {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                padding: 0 !important;
+                width: auto !important;
+                display: block !important;
+                background: transparent !important;
+            }
+
+            .checkbox-cell:before {
+                display: none;
+            }
+
+            /* Bulk Actions Bar Mobile */
+            .bulk-actions-bar.active {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 5px;
+            }
+
+            .bulk-actions-bar button {
+                width: 100%;
+            }
+
+            /* Admin Section adjustments */
+            .admin-section {
+                padding: 15px;
+            }
+
+            #page-title {
+                font-size: 18px;
+                word-break: break-all;
+            }
+
+            .login-container {
+                width: 95%;
+                margin: 50px auto;
+                padding: 15px;
+            }
+        }
+
+        /* Glassmorphism & UI Enhancements */
+        .stat-card {
+            backdrop-filter: blur(8px);
+            background: rgba(30, 41, 59, 0.7);
+        }
+
+        input,
+        button,
+        select {
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading" style="text-align:center; margin-top:50px; color:#38bdf8;">
+        <h2>Connecting to System...</h2>
+    </div>
+
+    <!-- Login Section -->
+    <div id="login-section">
+        <div class="login-container">
+            <h2>🔐 Team Login</h2>
+            <input type="email" id="login-email" placeholder="Email Address">
+            <input type="password" id="login-password" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <p style="margin-top:10px; font-size:14px;">
+                New here? <a href="#" onclick="toggleAuthMode()" style="color:#38bdf8;">Register</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Register Section -->
+    <div id="register-section" style="display:none;">
+        <div class="login-container">
+            <h2>📝 Team Registration</h2>
+            <input type="email" id="reg-email" placeholder="Email Address">
+            <input type="password" id="reg-password" placeholder="Password">
+            <button onclick="register()">Sign Up</button>
+            <p style="margin-top:10px; font-size:14px;">
+                Already have an account? <a href="#" onclick="toggleAuthMode()" style="color:#38bdf8;">Login</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding: 0 20px;">
+            <h1 id="page-title">⏱️ Dashboard</h1>
+            <button onclick="logout()" style="background:#ef4444;">Logout</button>
+        </div>
+
+        <!-- Admin Statistics Dashboard -->
+        <div id="admin-stats" class="admin-section" style="display:none;">
+            <h3>📊 Dashboard Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📁</div>
+                    <div class="stat-value" id="stat-total-profiles">0</div>
+                    <div class="stat-label">Total Profiles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value" id="stat-active-profiles">0</div>
+                    <div class="stat-label">Active Profiles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">😴</div>
+                    <div class="stat-value" id="stat-resting-profiles">0</div>
+                    <div class="stat-label">Resting Profiles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value" id="stat-total-users">0</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Panel (User Management) -->
+        <div id="admin-panel" class="admin-section" style="display:none;">
+            <h3>👥 User Management</h3>
+            <div style="font-size:13px; color:#94a3b8; margin-bottom:10px;">
+                Users self-register. You can ban users by deleting them here.
+            </div>
+            <div id="user-list" style="max-height:150px; overflow-y:auto; font-size:13px; margin-top:10px;"></div>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div class="search-filter-bar">
+            <input type="text" id="search-input" placeholder="🔍 Search profiles..." onkeyup="applyFilters()">
+            <select id="filter-user" onchange="applyFilters()" style="display:none;">
+                <option value="all">All Users</option>
+            </select>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div id="bulk-actions-bar" class="bulk-actions-bar">
+            <span id="selected-count" style="color:#38bdf8; font-weight:bold;">0 selected</span>
+            <button class="action-btn btn-primary" onclick="bulkAssignPrompt()">Assign to User</button>
+            <button class="action-btn btn-success" onclick="bulkRest(false)">Unrest Selected</button>
+            <button class="action-btn btn-warning" onclick="bulkRest(true)">Rest Selected</button>
+            <button class="action-btn btn-danger" onclick="bulkDeleteProfiles()">Delete Selected</button>
+            <button class="action-btn" onclick="clearSelection()" style="background:#64748b;">Clear</button>
+        </div>
+
+        <!-- Profile Actions Panel -->
+        <div id="profile-actions-section" class="admin-section">
+            <h3>⚙️ Profile Actions</h3>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="number" id="count" placeholder="Quantity" style="width: 100px; padding: 8px;" min="1">
+                <button class="action-btn btn-primary" onclick="createProfiles()">Create Profiles</button>
+                <button class="action-btn btn-danger" onclick="deleteAllProfiles()">Delete All</button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="checkbox-cell" id="checkbox-header" style="display:none;">
+                        <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                    </th>
+                    <th class="col-profile">Profile</th>
+
+                    <th class="col-last-send">Last Send</th>
+                    <th class="col-next-send">Next Send</th>
+                    <th class="col-reply-cnt">Reply Countdown</th>
+                    <th class="col-last-reply">Last Reply</th>
+                    <th class="col-send-cnt">Sending Countdown</th>
+                    <th colspan="3" class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4Z2o4Bp06zz41OD5rnb6yVvi01oAgqGI",
+            authDomain: "tracker-5ee8f.firebaseapp.com",
+            projectId: "tracker-5ee8f",
+            storageBucket: "tracker-5ee8f.firebasestorage.app",
+            messagingSenderId: "122805419748",
+            appId: "1:122805419748:web:f63b5801f54b15dd3bf6f1",
+            measurementId: "G-WQC0GZ1SHY"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        const SEND_SECRET = "3333";
+        const REST_SECRET = "6666"; // Used for Rest and Delete All
+        const REPLY_DURATION = 12 * 60 * 60 * 1000; // 12h
+        const SEND_DURATION = 24 * 60 * 60 * 1000;  // 24h
+
+        let currentUser = null;
+        let allUsers = [];
+        let currentProfiles = []; // Store for live countdowns
+        let selectedProfiles = new Set(); // Track selected profile IDs for bulk actions
+        let filteredProfiles = []; // Store filtered profiles for search/filter
+        let viewingAsUser = null; // Track when admin is viewing an employee's dashboard
+
+        // --- Auth & Init ---
+
+        // Mock Admin for initial setup if empty
+        async function checkInit() {
+            // Note: With Auth, we rely on console to create first users or just sign up
+            // Keeping this for user list loading
+            const usersSnap = await db.collection("users").get();
+            allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderUserList();
+        }
+
+        function login() {
+            const email = document.getElementById("login-email").value.trim();
+            const password = document.getElementById("login-password").value.trim();
+
+            auth.signInWithEmailAndPassword(email, password)
+                .catch(error => alert(error.message));
+        }
+
+
+        function toggleAuthMode() {
+            const loginDiv = document.getElementById("login-section");
+            const regDiv = document.getElementById("register-section");
+            if (loginDiv.style.display === "none") {
+                loginDiv.style.display = "block";
+                regDiv.style.display = "none";
+            } else {
+                loginDiv.style.display = "none";
+                regDiv.style.display = "block";
+            }
+        }
+
+        async function register() {
+            const email = document.getElementById("reg-email").value.trim();
+            const password = document.getElementById("reg-password").value.trim();
+
+            if (!email || !password) { alert("Please fill all fields"); return; }
+
+            try {
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                // Create Firestore User Doc
+                await db.collection("users").doc(cred.user.uid).set({
+                    email: email,
+                    role: "employee",
+                    name: email.split('@')[0] // Simple default name
+                });
+                // Auth listener will handle the rest
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById("login-section").style.display = "none";
+            document.getElementById("register-section").style.display = "none";
+            document.getElementById("dashboard-section").style.display = "block";
+
+            // Use name if present, else email
+            const displayName = currentUser.name || currentUser.email;
+            const title = document.getElementById("page-title");
+            title.textContent = `⏱️ Dashboard - ${displayName} (${currentUser.role})`;
+
+            if (currentUser.role === 'admin') {
+                document.body.classList.add('is-admin');
+                document.getElementById("admin-panel").style.display = "block";
+                document.getElementById("admin-stats").style.display = "block";
+                document.getElementById("checkbox-header").style.display = "table-cell";
+                document.getElementById("filter-user").style.display = "block";
+                document.getElementById("profile-actions-section").style.display = "none";
+                document.getElementById("bulk-actions-bar").style.display = "flex";
+                populateUserFilter();
+            } else {
+                document.body.classList.remove('is-admin');
+                document.getElementById("admin-panel").style.display = "none";
+                document.getElementById("admin-stats").style.display = "none";
+                document.getElementById("checkbox-header").style.display = "none";
+                document.getElementById("filter-user").style.display = "none";
+                document.getElementById("profile-actions-section").style.display = "block";
+                document.getElementById("bulk-actions-bar").style.display = "none";
+            }
+
+            loadProfiles();
+        }
+
+        function logout() {
+            auth.signOut().then(() => location.reload());
+        }
+
+
+
+        async function deleteUser(id) {
+            if (currentUser.role !== 'admin') return;
+            if (confirm("Delete user?")) {
+                await db.collection("users").doc(id).delete();
+                checkInit();
+            }
+        }
+
+        function renderUserList() {
+            const list = document.getElementById("user-list");
+            if (!list) return;
+            list.innerHTML = allUsers.map(u => {
+                const badge = u.role === 'admin' ?
+                    '<span class="user-badge admin">ADMIN</span>' :
+                    '<span class="user-badge employee">EMPLOYEE</span>';
+                return `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #475569;padding:8px 0;">
+                    <span>${u.email || u.name} ${badge}</span>
+                    ${u.role === 'employee' ? `<button onclick="viewEmployeeDashboard('${u.id}')" class="action-btn" style="font-size:11px;padding:4px 8px;background:#3b82f6;">View Dashboard</button>` : ''}
+                </div>`;
+            }).join('');
+            updateStatistics();
+        }
+
+        // --- Enhanced Admin Dashboard Functions ---
+
+        function updateStatistics() {
+            if (currentUser && currentUser.role === 'admin') {
+                const total = currentProfiles.length;
+                const active = currentProfiles.filter(p => !p.isResting).length;
+                const resting = currentProfiles.filter(p => p.isResting).length;
+
+                document.getElementById('stat-total-profiles').textContent = total;
+                document.getElementById('stat-active-profiles').textContent = active;
+                document.getElementById('stat-resting-profiles').textContent = resting;
+                document.getElementById('stat-total-users').textContent = allUsers.length;
+            }
+        }
+
+        function populateUserFilter() {
+            const filterUser = document.getElementById('filter-user');
+            if (!filterUser) return;
+
+            filterUser.innerHTML = '<option value="all">All Users</option>';
+            allUsers.forEach(u => {
+                filterUser.innerHTML += `<option value="${u.id}">${u.email || u.name}</option>`;
+            });
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const userFilter = document.getElementById('filter-user').value;
+
+            filteredProfiles = currentProfiles.filter(p => {
+                // Search filter
+                const matchesSearch = !searchTerm || p.name.toLowerCase().includes(searchTerm);
+
+                // User filter (admin only)
+                const matchesUser = userFilter === 'all' || p.assignedTo === userFilter;
+
+                return matchesSearch && matchesUser;
+            });
+
+            renderFilteredProfiles();
+        }
+
+        function renderFilteredProfiles() {
+            const rows = document.getElementById("rows");
+            if (!rows) return;
+
+            rows.innerHTML = "";
+
+            // Sort filtered profiles
+            filteredProfiles.sort((a, b) => a.number - b.number);
+            filteredProfiles.sort((a, b) => (a.isResting === b.isResting) ? 0 : a.isResting ? 1 : -1);
+
+            filteredProfiles.forEach(p => {
+                const now = Date.now();
+                const isAdmin = currentUser.role === 'admin';
+
+                // Determine row color class based on status
+                let rowClass = "row-default";
+
+                if (p.isResting) {
+                    rowClass = "row-rest";
+                } else {
+                    // Normal Logic
+                    let sendOver = p.nextSendTime && now >= p.nextSendTime;
+                    let replyOver = p.nextReplyTime && now >= p.nextReplyTime;
+
+                    if (sendOver) {
+                        rowClass = "row-red";
+                    } else if (p.replyDone) {
+                        rowClass = "row-yellow";
+                    } else if (replyOver) {
+                        rowClass = "row-orange";
+                    } else if (p.lastSendTime) {
+                        rowClass = "row-green";
+                    }
+                }
+
+                const checkbox = (currentUser.role === 'admin' && !viewingAsUser) ?
+                    `<td class="checkbox-cell"><input type="checkbox" ${selectedProfiles.has(p.id) ? 'checked' : ''} onchange="toggleProfileSelection('${p.id}')"></td>` : '';
+
+                rows.innerHTML += `<tr id="row-${p.id}" class="${rowClass}">
+                    ${checkbox}
+                    <td class="col-profile">${p.name}${p.isResting ? ' (REST)' : ''}</td>
+                    <td class="col-last-send">${bdTime(p.lastSendTime)}</td>
+                    <td class="col-next-send">${bdTime(p.nextSendTime)}</td>
+                    <td class="col-reply-cnt">${p.nextReplyTime ? countdown(p.nextReplyTime) : '-'}</td>
+                    <td class="col-last-reply">${bdTime(p.replyStartTime)}</td>
+                    <td class="col-send-cnt">${p.nextSendTime ? countdown(p.nextSendTime, true) : '-'}</td>
+                    <td class="col-action-send">
+                        <button class="send-btn" onclick="sendingDone('${p.id}',${p.lastSendTime || null},${p.nextSendTime || null})" ${p.isResting || viewingAsUser || currentUser.role === 'admin' ? 'disabled' : ''}>SEND</button>
+                    </td>
+                    <td class="col-action-reply">
+                        <button class="reply-btn" onclick="toggleReply('${p.id}',${p.replyDone})" ${p.isResting || viewingAsUser || currentUser.role === 'admin' ? 'disabled' : ''}>REPLY</button>
+                    </td>
+                    <td class="col-action-rest">
+                        <button class="rest-btn" onclick="toggleRest('${p.id}', ${p.isResting || false})" ${viewingAsUser || currentUser.role === 'admin' ? 'disabled' : ''}>${p.isResting ? 'UNREST' : 'REST'}</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        // Bulk Selection Functions
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('select-all').checked;
+            if (selectAll) {
+                filteredProfiles.forEach(p => selectedProfiles.add(p.id));
+            } else {
+                selectedProfiles.clear();
+            }
+            updateBulkActionsBar();
+            applyFilters(); // Re-render to update checkboxes
+        }
+
+        function toggleProfileSelection(id) {
+            if (selectedProfiles.has(id)) {
+                selectedProfiles.delete(id);
+            } else {
+                selectedProfiles.add(id);
+            }
+            updateBulkActionsBar();
+        }
+
+        function updateBulkActionsBar() {
+            const bulkBar = document.getElementById('bulk-actions-bar');
+            const selectedCount = document.getElementById('selected-count');
+
+            if (selectedProfiles.size > 0) {
+                bulkBar.classList.add('active');
+                selectedCount.textContent = `${selectedProfiles.size} selected`;
+            } else {
+                bulkBar.classList.remove('active');
+            }
+
+            // Update select-all checkbox state
+            const selectAllCheckbox = document.getElementById('select-all');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = selectedProfiles.size > 0 && selectedProfiles.size === filteredProfiles.length;
+            }
+        }
+
+        function clearSelection() {
+            selectedProfiles.clear();
+            updateBulkActionsBar();
+            applyFilters(); // Re-render to update checkboxes
+        }
+
+        // Bulk Operations
+        async function bulkAssignPrompt() {
+            if (selectedProfiles.size === 0) return;
+            if (currentUser.role !== 'admin') return;
+
+            const userList = allUsers.map((u, i) => `${i + 1}. ${u.email} (${u.id})`).join('\n');
+            const userId = prompt(`Assign ${selectedProfiles.size} profiles to user:\n\n${userList}\n\nEnter User ID:`);
+
+            if (!userId) return;
+
+            try {
+                const batch = db.batch();
+                selectedProfiles.forEach(profileId => {
+                    const ref = db.collection("profiles").doc(profileId);
+                    batch.update(ref, { assignedTo: userId });
+                });
+                await batch.commit();
+                alert(`Assigned ${selectedProfiles.size} profiles successfully!`);
+                clearSelection();
+            } catch (error) {
+                alert("Bulk assign failed: " + error.message);
+            }
+        }
+
+        async function bulkRest(isResting) {
+            if (selectedProfiles.size === 0) return;
+
+            const action = isResting ? 'rest' : 'unrest';
+            if (!confirm(`${action.toUpperCase()} ${selectedProfiles.size} profiles?`)) return;
+
+            try {
+                const batch = db.batch();
+                selectedProfiles.forEach(profileId => {
+                    const ref = db.collection("profiles").doc(profileId);
+                    batch.update(ref, { isResting: isResting });
+                });
+                await batch.commit();
+                alert(`${selectedProfiles.size} profiles ${action}ed successfully!`);
+                clearSelection();
+            } catch (error) {
+                alert(`Bulk ${action} failed: ` + error.message);
+            }
+        }
+
+        async function bulkDeleteProfiles() {
+            if (selectedProfiles.size === 0) return;
+
+            const code = prompt(`Enter code to DELETE ${selectedProfiles.size} profiles:`);
+            if (code !== "6666" && code !== "9999") {
+                alert("Invalid code!");
+                return;
+            }
+
+            if (!confirm(`DELETE ${selectedProfiles.size} profiles? THIS CANNOT BE UNDONE!`)) return;
+
+            try {
+                const batch = db.batch();
+                selectedProfiles.forEach(profileId => {
+                    const ref = db.collection("profiles").doc(profileId);
+                    batch.delete(ref);
+                });
+                await batch.commit();
+                alert(`Deleted ${selectedProfiles.size} profiles successfully!`);
+                clearSelection();
+            } catch (error) {
+                alert("Bulk delete failed: " + error.message);
+            }
+        }
+
+        // --- View Mode Functions ---
+
+        async function viewEmployeeDashboard(userId) {
+            if (currentUser.role !== 'admin') return;
+
+            // Find the employee user object
+            const employee = allUsers.find(u => u.id === userId);
+            if (!employee) {
+                alert("Employee not found!");
+                return;
+            }
+
+            viewingAsUser = employee;
+
+            // Hide admin sections
+            document.getElementById("admin-stats").style.display = "none";
+            document.getElementById("admin-panel").style.display = "none";
+            document.getElementById("checkbox-header").style.display = "none";
+            document.getElementById("filter-user").style.display = "none";
+            document.getElementById("profile-actions-section").style.display = "none";
+            document.getElementById("bulk-actions-bar").classList.remove("active");
+
+            // Show viewing banner
+            const dashboardSection = document.getElementById("dashboard-section");
+            let banner = document.getElementById("viewing-banner");
+            if (!banner) {
+                banner = document.createElement("div");
+                banner.id = "viewing-banner";
+                banner.style.cssText = "background:linear-gradient(135deg, #3b82f6, #2563eb);color:white;padding:12px 20px;margin-bottom:20px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;";
+                banner.innerHTML = `
+                    <span style="font-size:14px;font-weight:600;">📊 Viewing: ${employee.email || employee.name}'s Dashboard (Read-Only)</span>
+                    <button onclick="returnToAdminDashboard()" style="background:white;color:#3b82f6;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;">← Return to Admin Dashboard</button>
+                `;
+                dashboardSection.insertBefore(banner, dashboardSection.firstChild);
+            }
+
+            // Clear selections
+            selectedProfiles.clear();
+            updateBulkActionsBar();
+
+            // Reload profiles for this employee
+            loadProfiles();
+        }
+
+        function returnToAdminDashboard() {
+            if (!viewingAsUser) return;
+
+            viewingAsUser = null;
+
+            // Show admin sections again
+            document.getElementById("admin-stats").style.display = "block";
+            document.getElementById("admin-panel").style.display = "block";
+            document.getElementById("checkbox-header").style.display = "table-cell";
+            document.getElementById("filter-user").style.display = "block";
+            document.getElementById("profile-actions-section").style.display = "none"; // Keep hidden for admin
+
+            // Remove viewing banner
+            const banner = document.getElementById("viewing-banner");
+            if (banner) banner.remove();
+
+            // Reload all profiles (admin view)
+            loadProfiles();
+        }
+
+
+        // --- Main Logic ---
+
+        function bdTime(ts) {
+            if (!ts) return "-";
+            return new Date(ts).toLocaleString("en-US", {
+                timeZone: "Asia/Dhaka",
+                hour: "numeric", minute: "2-digit", second: "2-digit",
+                hour12: true, year: "numeric", month: "short", day: "numeric"
+            });
+        }
+
+        function countdown(ts, isSending = false) {
+            if (!ts) return "-";
+            let d = ts - Date.now();
+            if (d <= 0) return isSending ? "00" : "00:00:00";
+            let h = Math.floor(d / 3600000),
+                m = Math.floor(d % 3600000 / 60000),
+                s = Math.floor(d % 60000 / 1000);
+            return `${h}h ${m}m ${s}s`;
+        }
+
+        // Create profiles
+        async function createProfiles() {
+            const n = parseInt(document.getElementById("count").value);
+            if (!n) return;
+
+            let query = db.collection("profiles");
+            if (currentUser.role !== 'admin') {
+                query = query.where("assignedTo", "==", currentUser.id);
+            }
+
+            try {
+                const snap = await query.get();
+                let start = snap.size + 1;
+
+                const batch = db.batch(); // Use batch for better performance
+                for (let i = 0; i < n; i++) {
+                    const newDocRef = db.collection("profiles").doc();
+                    let num = String(start + i).padStart(2, '0');
+
+                    batch.set(newDocRef, { // Using set with doc ref
+                        name: "Profile " + num,
+                        number: start + i,
+                        lastSendTime: null,
+                        nextSendTime: null,
+                        replyDone: false,
+                        replyStartTime: null,
+                        nextReplyTime: null,
+                        replyAlertShown: false,
+                        sendAlertShown: false,
+                        assignedTo: (currentUser.role === 'admin') ? "" : currentUser.id, // Auto-assign if not admin
+                        isResting: false // New: Rest Mode
+                    });
+                }
+                await batch.commit();
+                document.getElementById("count").value = "";
+            } catch (error) {
+                console.error("Create Error:", error);
+                alert("Creation Failed: " + error.message);
+            }
+        }
+
+        // Delete Profiles (Admin=All, User=Own)
+        async function deleteAllProfiles() {
+            const code = prompt("Enter Secret Code to DELETE ALL:");
+            if (!code) return;
+
+            let query = db.collection("profiles");
+
+            if (code === "9999" && currentUser.role === 'admin') {
+                // Admin Delete All
+                // Query is already all
+            } else if (code === "6666") {
+                // User/Admin Delete Own/Assigned
+                // If admin uses 6666, they delete profiles assigned to them (or none if none assigned)
+                // Actually for simplicity, 6666 allows deleting *assigned to self*
+                query = query.where("assignedTo", "==", currentUser.id);
+            } else {
+                alert("Invalid Code!");
+                return;
+            }
+
+            if (!confirm("ARE YOU SURE? THIS CANNOT BE UNDONE!")) return;
+
+            try {
+                const snap = await query.get();
+                const batch = db.batch();
+                snap.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                alert("Deleted " + snap.size + " profiles.");
+            } catch (error) {
+                console.error("Delete Error:", error);
+                alert("Delete Failed: " + error.message);
+            }
+        }
+        // Sending Done
+        function sendingDone(id, lastSend, nextSend) {
+            const now = Date.now();
+            if (lastSend && now < nextSend) {
+                const code = prompt("24h not completed. Enter secret code:");
+                if (code !== SEND_SECRET) { alert("Wrong code"); return; }
+            }
+            db.collection("profiles").doc(id).update({
+                lastSendTime: now,
+                nextSendTime: now + SEND_DURATION,
+                nextReplyTime: now + REPLY_DURATION,
+                sendAlertShown: false,
+                replyAlertShown: false
+            });
+        }
+
+        // Reply Done toggle
+        function toggleReply(id, replyDone) {
+            const now = Date.now();
+            let updateData = {};
+            if (!replyDone) {
+                // Reply Done ON → set current time
+                updateData = {
+                    replyDone: true,
+                    replyStartTime: now
+                };
+            } else {
+                // Reply Done OFF → keep last reply time
+                updateData = {
+                    replyDone: false
+                };
+            }
+            db.collection("profiles").doc(id).update(updateData);
+        }
+
+        // Toggle Rest Mode
+        function toggleRest(id, isResting) {
+            const code = prompt("Enter Rest Secret Code:");
+            if (code !== REST_SECRET) { alert("Wrong code"); return; }
+
+            // Toggle
+            db.collection("profiles").doc(id).update({
+                isResting: !isResting
+            });
+        }
+
+        // Assign Profile (Admin Only)
+        function assignProfile(profileId, userId) {
+            db.collection("profiles").doc(profileId).update({ assignedTo: userId });
+        }
+
+        // Load Profiles (Server-Side Filtering)
+        function loadProfiles() {
+            let query = db.collection("profiles");
+
+            // If viewing an employee's dashboard, filter by that employee
+            if (viewingAsUser) {
+                query = query.where("assignedTo", "==", viewingAsUser.id);
+            }
+            // Server-side filter: employees see only their profiles
+            else if (currentUser.role !== 'admin') {
+                query = query.where("assignedTo", "==", currentUser.id);
+            }
+
+            query.onSnapshot(snap => {
+                currentProfiles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                filteredProfiles = [...currentProfiles]; // Initialize filtered profiles
+                updateStatistics(); // Update statistics
+                applyFilters(); // Apply any active filters
+            }, error => {
+                console.error("Firestore Error:", error);
+                alert("Error loading profiles: " + error.message);
+            });
+        }
+
+        // Live countdown update
+        setInterval(() => {
+            if (!currentUser || !filteredProfiles.length) return;
+            filteredProfiles.forEach(p => {
+                const row = document.getElementById(`row-${p.id}`);
+                if (row) {
+                    // Update countdown cells
+                    const isAdmin = currentUser.role === 'admin';
+                    const checkboxOffset = isAdmin ? 1 : 0; // Account for checkbox column
+
+                    // Reply Countdown column
+                    if (p.nextReplyTime) {
+                        const replyCell = row.cells[3 + checkboxOffset];
+                        if (replyCell) replyCell.innerText = countdown(p.nextReplyTime);
+                    }
+                    // Sending Countdown column
+                    if (p.nextSendTime) {
+                        const sendCell = row.cells[5 + checkboxOffset];
+                        if (sendCell) sendCell.innerText = countdown(p.nextSendTime, true);
+                    }
+                }
+            });
+        }, 1000);
+
+        // Auth State Listener
+        auth.onAuthStateChanged(async user => {
+            const loading = document.getElementById("loading");
+            if (loading) loading.style.display = "none";
+
+            if (user) {
+                // Get Firestore Role
+                try {
+                    const doc = await db.collection("users").doc(user.uid).get();
+                    if (doc.exists) {
+                        currentUser = { id: doc.id, ...doc.data() };
+                        showDashboard();
+                    } else {
+                        // Auto-create missing user document (for users created directly in Firebase Auth)
+                        console.log("User document not found, creating one...");
+                        const newUserData = {
+                            email: user.email,
+                            role: 'employee', // Default to employee
+                            name: user.email.split('@')[0] // Use email prefix as name
+                        };
+                        await db.collection("users").doc(user.uid).set(newUserData);
+                        currentUser = { id: user.uid, ...newUserData };
+                        showDashboard();
+                    }
+                    try {
+                        await checkInit();
+                    } catch (e) { console.log("User list load error", e); }
+                } catch (e) {
+                    alert("Connection Error: " + e.message);
+                }
+            } else {
+                document.getElementById("login-section").style.display = "block";
+                document.getElementById("dashboard-section").style.display = "none";
+            }
+        });
+
+        // Connection Timeout Warning
+        setTimeout(() => {
+            const loading = document.getElementById("loading");
+            if (loading && loading.style.display !== "none") {
+                loading.innerHTML += `
+                    <div style="color:white; margin-top:20px; font-size:14px;">
+                        <p>Still connecting?</p>
+                        <ul style="text-align:left; display:inline-block;">
+                            <li>Check your internet connection.</li>
+                            <li><strong>Authorized Domains:</strong> If on Netlify/Vercel, add your domain to Firebase Console -> Authentication -> Settings -> Authorized Domains.</li>
+                        </ul>
+                    </div>
+                `;
+            }
+        }, 5000);
+
+    </script>
+</body>
+
+</html>
